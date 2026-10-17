@@ -1,0 +1,165 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#080d19">
+    <title>Scan History | Web Application Security Scanner</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <main class="container history-page">
+
+        <div class="history-heading">
+            <div class="history-title">
+                <span class="badge">SECURITY OPERATIONS</span>
+                <h1>Scan History</h1>
+                <p>Review previous scans, inspect results, and manage reports.</p>
+            </div>
+
+            <div class="history-actions">
+                <a class="history-back"
+                   href="{{ url_for('home') }}">
+                    <span aria-hidden="true">←</span>
+                    Back to Scanner
+                </a>
+
+                {% if scans %}
+                <form action="{{ url_for('clear_history') }}"
+                      method="POST"
+                      onsubmit="return confirm('Delete ALL scan history? This action cannot be undone.');">
+                    <button type="submit" class="clear-all-button">
+                        Clear All History
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <section class="history-card">
+
+            <div class="history-card-header">
+                <div>
+                    <h2>Previous Scans</h2>
+                    <p class="empty-text">
+                        Saved scan results and report access.
+                    </p>
+                </div>
+
+                {% if scans %}
+                <div class="history-count">
+                    <span class="history-count-number">
+                        {{ scans|length }}
+                    </span>
+                    <span>Saved scans</span>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if scans %}
+            <div class="history-table-wrapper">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Target URL</th>
+                            <th>Scan Date</th>
+                            <th>HTTP Status</th>
+                            <th>Findings</th>
+                            <th>Error</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for scan in scans %}
+                        <tr>
+                            <td class="target-url">
+                                <span class="target-label">
+                                    {{ scan["target_url"] }}
+                                </span>
+                            </td>
+
+                            <td class="scan-date">
+                                {{ scan["scanned_at"] }}
+                            </td>
+
+                            <td>
+                                {% if scan["status_code"] %}
+                                <span class="history-badge status-ok">
+                                    {{ scan["status_code"] }}
+                                </span>
+                                {% else %}
+                                <span class="history-badge status-na">
+                                    N/A
+                                </span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <span class="history-badge findings-badge">
+                                    {{ scan["findings_count"] }}
+                                </span>
+                            </td>
+
+                            <td class="scan-error">
+                                {% if scan["error"] %}
+                                    {{ scan["error"] }}
+                                {% else %}
+                                    <span class="no-error">None</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <div class="history-row-actions">
+                                    <a class="report-link"
+                                       href="{{ url_for('download_report', scan_id=scan['id']) }}">
+                                        Download Report
+                                    </a>
+
+                                    <form class="row-delete-form"
+                                          action="{{ url_for('delete_single_scan', scan_id=scan['id']) }}"
+                                          method="POST"
+                                          onsubmit="return confirm('Delete this scan record? This action cannot be undone.');">
+                                        <button type="submit"
+                                                class="clear-row-button">
+                                            Delete Scan
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="history-footnote">
+                Scan records are stored locally in the scanner database.
+            </p>
+
+            {% else %}
+            <div class="empty-history">
+                <div class="empty-history-icon" aria-hidden="true">↗</div>
+                <h2>No scan history yet</h2>
+                <p>Your saved security scans will appear here after you run a scan.</p>
+                <a class="history-primary-link"
+                   href="{{ url_for('home') }}">
+                    Start a New Scan
+                </a>
+            </div>
+            {% endif %}
+
+        </section>
+
+        <footer class="history-footer">
+            Web Application Security Scanner
+            <span>·</span>
+            Scan history
+        </footer>
+
+    </main>
+</body>
+</html>

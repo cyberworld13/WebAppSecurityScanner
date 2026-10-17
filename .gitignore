@@ -1,0 +1,21 @@
+
+# Python virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Environment variables and secrets
+.env
+.env.*
+
+# Local database
+database/scanner.db
+database/*.db
+
+# Backup files
+*_backup.*
+*.bak
+app_before_*.py
+scanner_original_backup.py

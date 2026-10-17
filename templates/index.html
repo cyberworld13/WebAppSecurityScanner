@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Web Application Security Scanner</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container dashboard">
+      <nav class="dashboard-nav">
+        <a class="brand" href="{{ url_for('home') }}">
+          <span class="brand-icon">S</span>
+          <span>Web Security <span class="brand-muted">Scanner</span></span>
+        </a>
+        <a class="history-link" href="{{ url_for('history') }}">
+          View Scan History <span aria-hidden="true">↗</span>
+        </a>
+      </nav>
+
+      <header class="dashboard-hero">
+        <p class="hero-eyebrow">APPLICATION SECURITY · ASSESSMENT TOOL</p>
+        <div class="hero-heading-row">
+          <div>
+            <h1>
+              Web Application<br />
+              <span class="hero-title-accent">Security Scanner</span>
+            </h1>
+            <p class="hero-description">
+              Inspect website security configurations, discover pages and forms,
+              and review potential security indicators from one workspace.
+            </p>
+          </div>
+          <div class="hero-symbol" aria-hidden="true">⌘</div>
+        </div>
+        <div class="hero-meta">
+          <span>● Passive and lightweight checks</span>
+          <span>● Limited same-domain crawling</span>
+          <span>● Evidence-based results</span>
+        </div>
+      </header>
+
+      <main>
+        <section class="scanner-card">
+          <div class="section-kicker">NEW ASSESSMENT</div>
+          <h2>Scan a website</h2>
+          <p class="section-description">
+            Enter the full HTTP or HTTPS URL of a website you own or have
+            explicit permission to assess.
+          </p>
+
+          <form action="{{ url_for('scan') }}" method="POST" class="scan-form">
+            <label for="url">Target URL</label>
+            <div class="input-row">
+              <span class="url-prefix" aria-hidden="true">↗</span>
+              <input
+                id="url"
+                name="url"
+                type="url"
+                placeholder="https://example.com"
+                value="{{ result.target if result else '' }}"
+                required
+              />
+              <button type="submit">Start Scan <span>→</span></button>
+            </div>
+            <p class="form-note">
+              <span aria-hidden="true">ⓘ</span>
+              Only scan systems for which you have authorization. Requests may
+              reach multiple pages on the same domain.
+            </p>
+          </form>
+        </section>
+
+        {% if result %}
+        <section class="results-workspace" id="scan-results">
+          <div class="results-heading">
+            <div>
+              <p class="section-kicker">ASSESSMENT RESULTS</p>
+              <h2>Scan overview</h2>
+              <p class="section-description result-target">
+                Target:
+                <strong>{{ result.target }}</strong>
+              </p>
+            </div>
+            <a class="text-link" href="{{ url_for('history') }}">
+              Scan history →
+            </a>
+          </div>
+
+          {% if result.error %}
+          <div class="error-message" role="alert">
+            <strong>Scan could not be completed</strong>
+            <p>{{ result.error }}</p>
+          </div>
+          {% else %} {% set finding_count = result.findings | length %} {% set
+          high_count = result.findings | selectattr('severity', 'equalto',
+          'High') | list | length %} {% set critical_count = result.findings |
+          selectattr('severity', 'equalto', 'Critical') | list | length %} {%
+          set medium_count = result.findings | selectattr('severity', 'equalto',
+          'Medium') | list | length %} {% set low_count = result.findings |
+          selectattr('severity', 'equalto', 'Low') | list | length %} {% set
+          info_count = result.findings | selectattr('severity', 'equalto',
+          'Informational') | list | length %}
+
+          <div class="overview-grid">
+            <article class="overview-card">
+              <span class="overview-label">HTTP STATUS</span>
+              <strong class="overview-value">
+                {{ result.status_code if result.status_code is not none else '—'
+                }}
+              </strong>
+              <span class="overview-caption">Initial response</span>
+            </article>
+            <article class="overview-card">
+              <span class="overview-label">RESPONSE TIME</span>
+              <strong class="overview-value">
+                {{ result.response_time if result.response_time is not none else
+                '—' }} {% if result.response_time is not none
+                %}<small>s</small>{% endif %}
+              </strong>
+              <span class="overview-caption">Initial request</span>
+            </article>
+            <article class="overview-card">
+              <span class="overview-label">PAGES DISCOVERED</span>
+              <strong class="overview-value">{{ result.total_pages }}</strong>
+              <span class="overview-caption">Limited crawl</span>
+            </article>
+            <article class="overview-card">
+              <span class="overview-label">FINDINGS</span>
+              <strong class="overview-value">{{ finding_count }}</strong>
+              <span class="overview-caption">Items to review</span>
+            </article>
+          </div>
+
+          <section class="result-card visualization-card">
+            <div class="card-heading">
+              <div>
+                <p class="section-kicker">SCAN ANALYTICS</p>
+                <h2>Finding severity distribution</h2>
+                <p class="section-description">
+                  Breakdown of findings generated by the current scan.
+                </p>
+              </div>
+              <span class="count-pill">{{ finding_count }} total</span>
+            </div>
+
+            {% if finding_count > 0 %}
+            <div class="severity-chart">
+              <div class="severity-chart-row">
+                <span>Critical</span>
+                <div class="chart-track">
+                  <div
+                    class="chart-fill critical-fill"
+                    style="width: {{ (critical_count / finding_count * 100) | round(1) }}%"
+                  ></div>
+                </div>
+                <strong>{{ critical_count }}</strong>
+              </div>
+
+              <div class="severity-chart-row">
+                <span>High</span>
+                <div class="chart-track">
+                  <div
+                    class="chart-fill high-fill"
+                    style="width: {{ (high_count / finding_count * 100) | round(1) }}%"
+                  ></div>
+                </div>
+                <strong>{{ high_count }}</strong>
+              </div>
+
+              <div class="severity-chart-row">
+                <span>Medium</span>
+                <div class="chart-track">
+                  <div
+                    class="chart-fill medium-fill"
+                    style="width: {{ (medium_count / finding_count * 100) | round(1) }}%"
+                  ></div>
+                </div>
+                <strong>{{ medium_count }}</strong>
+              </div>
+
+              <div class="severity-chart-row">
+                <span>Low</span>
+                <div class="chart-track">
+                  <div
+                    class="chart-fill low-fill"
+                    style="width: {{ (low_count / finding_count * 100) | round(1) }}%"
+                  ></div>
+                </div>
+                <strong>{{ low_count }}</strong>
+              </div>
+
+              <div class="severity-chart-row">
+                <span>Informational</span>
+                <div class="chart-track">
+                  <div
+                    class="chart-fill info-fill"
+                    style="width: {{ (info_count / finding_count * 100) | round(1) }}%"
+                  ></div>
+                </div>
+                <strong>{{ info_count }}</strong>
+              </div>
+            </div>
+            {% else %}
+            <p class="empty-state">No findings to visualize for this scan.</p>
+            {% endif %}
+          </section>
+
+          <section class="result-card target-card">
+            <div class="card-heading">
+              <div>
+                <p class="section-kicker">01 · TARGET</p>
+                <h2>Target information</h2>
+              </div>
+              <span
+                class="status-pill {{ 'status-good' if result.https else 'status-warn' }}"
+              >
+                {{ 'HTTPS detected' if result.https else 'HTTPS not detected' }}
+              </span>
+            </div>
+            <div class="info-grid">
+              <div class="info-box">
+                <span>Final URL</span>
+                <strong class="break-word"
+                  >{{ result.final_url or 'Not available' }}</strong
+                >
+              </div>
+              <div class="info-box">
+                <span>Server</span>
+                <strong>{{ result.server or 'Not disclosed' }}</strong>
+              </div>
+              <div class="info-box">
+                <span>Content type</span>
+                <strong class="break-word"
+                  >{{ result.content_type or 'Unknown' }}</strong
+                >
+              </div>
+            </div>
+          </section>
+
+          <section class="result-card">
+            <div class="card-heading">
+              <div>
+                <p class="section-kicker">02 · CONFIGURATION</p>
+                <h2>Security headers</h2>
+                <p class="section-description">
+                  Presence checks only; presence does not guarantee a secure
+                  header configuration.
+                </p>
+              </div>
+              <span class="count-pill">
+                {{ result.security_headers | length }}/{{
+                (result.security_headers | length) + (result.missing_headers |
+                length) }} present
+              </span>
+            </div>
+
+            {% set total_headers = (result.security_headers | length) +
+            (result.missing_headers | length) %} {% set present_headers =
+            result.security_headers | length %} {% set header_coverage =
+            (present_headers / total_headers * 100) | round(0) if total_headers
+            > 0 else 0 %}
+
+            <div class="header-coverage">
+              <div class="coverage-heading">
+                <span>Header presence</span>
+                <strong>{{ header_coverage }}%</strong>
+              </div>
+
+              <div
+                class="coverage-track"
+                role="img"
+                aria-label="{{ present_headers }} of {{ total_headers }} checked security headers were present"
+              >
+                <div
+                  class="coverage-fill"
+                  style="width: {{ header_coverage }}%"
+                ></div>
+              </div>
+
+              <p class="section-description">
+                {{ present_headers }} present · {{ result.missing_headers |
+                length }} missing · {{ total_headers }} checked
+              </p>
+            </div>
+
+            <div class="header-list">
+              {% for header in result.security_headers %}
+              <div class="header-item present">
+                <div class="header-item-main">
+                  <strong>{{ header.name }}</strong>
+                  <p>{{ header.description }}</p>
+                </div>
+                <span>PRESENT</span>
+              </div>
+              {% endfor %} {% for header in result.missing_headers %}
+              <div class="header-item missing">
+                <div class="header-item-main">
+                  <strong>{{ header.name }}</strong>
+                  <p>{{ header.description }}</p>
+                </div>
+                <span>MISSING</span>
+              </div>
+              {% endfor %}
+            </div>
+          </section>
+
+          <section class="result-card">
+            <div class="card-heading">
+              <div>
+                <p class="section-kicker">03 · RECONNAISSANCE</p>
+                <h2>Discovery summary</h2>
+              </div>
+            </div>
+            <div class="info-grid">
+              <div class="info-box">
+                <span>Pages</span>
+                <strong>{{ result.total_pages }}</strong>
+              </div>
+              <div class="info-box">
+                <span>Links found</span>
+                <strong>{{ result.total_links }}</strong>
+              </div>
+              <div class="info-box">
+                <span>Forms found</span>
+                <strong>{{ result.total_forms }}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="result-card">
+            <div class="card-heading">
+              <div>
+                <p class="section-kicker">04 · TECHNOLOGY CLUES</p>
+                <h2>Technology detection</h2>
+              </div>
+            </div>
+            {% if result.technologies %}
+            <div class="technology-list">
+              {% for technology in result.technologies %}
+              <span class="technology-tag">{{ technology }}</span>
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty-state">
+              No technology clues detected by the current checks.
+            </p>
+            {% endif %}
+          </section>
+
+          <section class="result-card">
+            <div class="card-heading">
+              <div>
+                <p class="section-kicker">05 · CRAWL RESULTS</p>
+                <h2>Discovered pages</h2>
+              </div>
+              <span class="count-pill">{{ result.pages | length }} pages</span>
+            </div>
+            {% if result.pages %}
+            <div class="data-list">
+              {% for page in result.pages %}
+              <article class="data-item">
+                <strong class="break-word">{{ page.url }}</strong>
+                <div class="item-meta">
+                  <span>HTTP {{ page.status_code }}</span>
+                  <span>{{ page.content_type or 'Unknown content type' }}</span>
+                </div>
+              </article>
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty-state">No pages were discovered.</p>
+            {% endif %}
+          </section>
+
+          <section class="result-card">
+            <div class="card-heading">
+              <div>
+                <p class="section-kicker">06 · INPUT SURFACE</p>
+                <h2>Discovered forms</h2>
+              </div>
+              <span class="count-pill">{{ result.forms | length }} forms</span>
+            </div>
+            {% if result.forms %}
+            <div class="data-list">
+              {% for form in result.forms %}
+              <article class="data-item">
+                <div class="item-title-row">
+                  <strong>{{ form.method }}</strong>
+                  <span class="method-tag">{{ form.method }}</span>
+                </div>
+                <p class="break-word">{{ form.action }}</p>
+                {% if form.inputs %}
+                <div class="field-list">
+                  {% for field in form.inputs %}
+                  <span class="field-tag">
+                    {{ field.name }} · {{ field.type }}
+                  </span>
+                  {% endfor %}
+                </div>
+                {% else %}
+                <p class="muted-text">No named input fields found.</p>
+                {% endif %}
+              </article>
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty-state">
+              No forms were discovered in the crawled pages.
+            </p>
+            {% endif %}
+          </section>
+
+          <section class="result-card">
+            <div class="card-heading">
+              <div>
+                <p class="section-kicker">07 · URL ANALYSIS</p>
+                <h2>URL parameters</h2>
+              </div>
+              <span class="count-pill"
+                >{{ result.parameters | length }} parameters</span
+              >
+            </div>
+            {% if result.parameters %}
+            <div class="technology-list">
+              {% for parameter in result.parameters %}
+              <span class="field-tag">{{ parameter }}</span>
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty-state">
+              No query-string parameters were found in discovered page URLs.
+            </p>
+            {% endif %}
+          </section>
+
+          <section class="result-card">
+            <div class="card-heading">
+              <div>
+                <p class="section-kicker">08 · FORM REVIEW</p>
+                <h2>Interesting input fields</h2>
+                <p class="section-description">
+                  Names are flagged for review based on a predefined list; this
+                  is not a vulnerability confirmation.
+                </p>
+              </div>
+            </div>
+            {% set interesting_count = namespace(total=0) %} {% for form in
+            result.interesting_inputs %} {% set interesting_count.total =
+            interesting_count.total + (form.interesting_fields | length) %} {%
+            endfor %} {% if interesting_count.total > 0 %}
+            <div class="data-list">
+              {% for form in result.interesting_inputs %} {% if
+              form.interesting_fields %}
+              <article class="data-item">
+                <span class="method-tag">{{ form.method }}</span>
+                <p class="break-word">{{ form.action }}</p>
+                <div class="field-list">
+                  {% for field in form.interesting_fields %}
+                  <span class="field-tag"
+                    >{{ field.name }} · {{ field.type }}</span
+                  >
+                  {% endfor %}
+                </div>
+              </article>
+              {% endif %} {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty-state">
+              No fields from the predefined review list were found.
+            </p>
+            {% endif %}
+          </section>
+
+          <section class="result-card">
+            <div class="card-heading">
+              <div>
+                <p class="section-kicker">09 · REFLECTION CHECK</p>
+                <h2>Reflected input testing</h2>
+                <p class="section-description">
+                  A reflected marker is an indicator for manual review, not
+                  proof of cross-site scripting.
+                </p>
+              </div>
+              <span class="count-pill"
+                >{{ result.reflection_tests | length }} tests</span
+              >
+            </div>
+            {% if result.reflection_tests %}
+            <div class="data-list">
+              {% for test in result.reflection_tests %}
+              <article class="data-item reflection-item">
+                <div class="item-title-row">
+                  <strong>Parameter: {{ test.parameter }}</strong>
+                  {% if test.skipped %}
+                  <span class="status-pill status-neutral">SKIPPED</span>
+                  {% elif test.reflected %}
+                  <span class="status-pill status-warn"
+                    >REFLECTION DETECTED</span
+                  >
+                  {% else %}
+                  <span class="status-pill status-good">NOT DETECTED</span>
+                  {% endif %}
+                </div>
+                <div class="item-meta">
+                  <span>HTTP {{ test.status_code }}</span>
+                  {% if test.skipped %}
+                  <span>{{ test.reason }}</span>
+                  {% endif %}
+                </div>
+                {% if test.reflected %}
+                <p class="break-word">Marker: {{ test.marker }}</p>
+                {% endif %}
+              </article>
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty-state">
+              No URL-parameter reflection tests produced results.
+            </p>
+            {% endif %}
+          </section>
+
+          <section class="result-card">
+            <div class="card-heading">
+              <div>
+                <p class="section-kicker">10 · COOKIE REVIEW</p>
+                <h2>Cookie security indicators</h2>
+                <p class="section-description">
+                  Flag reviewable cookie attributes; requirements depend on the
+                  cookie's purpose and application context.
+                </p>
+              </div>
+              <span class="count-pill"
+                >{{ result.cookies | length }} cookies</span
+              >
+            </div>
+            {% if result.cookies %}
+            <div class="data-list">
+              {% for cookie in result.cookies %}
+              <article class="data-item">
+                <strong class="break-word">{{ cookie.name }}</strong>
+                <div class="item-meta">
+                  <span
+                    class="{{ 'attribute-good' if cookie.secure else 'attribute-warn' }}"
+                  >
+                    Secure: {{ 'Yes' if cookie.secure else 'No' }}
+                  </span>
+                  <span
+                    class="{{ 'attribute-good' if cookie.httponly else 'attribute-warn' }}"
+                  >
+                    HttpOnly: {{ 'Yes' if cookie.httponly else 'No' }}
+                  </span>
+                  <span
+                    >SameSite: {{ cookie.samesite or 'Not specified' }}</span
+                  >
+                </div>
+              </article>
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty-state">
+              No cookies were returned in the initial response.
+            </p>
+            {% endif %}
+          </section>
+
+          <section class="result-card findings-section">
+            <div class="card-heading">
+              <div>
+                <p class="section-kicker">11 · REVIEW & PRIORITIZE</p>
+                <h2>Security findings</h2>
+                <p class="section-description">
+                  Review the evidence and recommendations before treating any
+                  item as a confirmed vulnerability.
+                </p>
+              </div>
+              <span class="count-pill">{{ finding_count }} total</span>
+            </div>
+
+            <div class="severity-summary">
+              <span class="severity-counter critical">
+                Critical <strong>{{ critical_count }}</strong>
+              </span>
+              <span class="severity-counter high">
+                High <strong>{{ high_count }}</strong>
+              </span>
+              <span class="severity-counter medium">
+                Medium <strong>{{ medium_count }}</strong>
+              </span>
+              <span class="severity-counter low">
+                Low <strong>{{ low_count }}</strong>
+              </span>
+              <span class="severity-counter info">
+                Info <strong>{{ info_count }}</strong>
+              </span>
+            </div>
+
+            {% if result.findings %}
+            <div class="findings-list">
+              {% for finding in result.findings %}
+              <details class="finding-card">
+                <summary class="finding-summary">
+                  <div class="finding-top">
+                    <h3>{{ finding.title }}</h3>
+                    <span class="severity-badge {{ finding.severity | lower }}">
+                      {{ finding.severity }}
+                    </span>
+                  </div>
+
+                  <p>{{ finding.description }}</p>
+                  <span class="expand-hint"
+                    >View evidence and remediation ↓</span
+                  >
+                </summary>
+
+                <div class="finding-expanded">
+                  <div class="finding-detail">
+                    <strong>Evidence</strong>
+                    <p class="break-word">
+                      {{ finding.evidence or 'No additional evidence recorded.'
+                      }}
+                    </p>
+                  </div>
+
+                  <div class="finding-detail">
+                    <strong>Potential impact</strong>
+                    <p>
+                      {{ finding.impact or 'Impact requires further assessment.'
+                      }}
+                    </p>
+                  </div>
+
+                  <div class="finding-detail recommendation">
+                    <strong>Recommended remediation</strong>
+                    <p>
+                      {{ finding.recommendation or 'Perform a manual security
+                      review.' }}
+                    </p>
+                  </div>
+
+                  <div class="finding-footer">
+                    <span
+                      >OWASP mapping: {{ finding.owasp or 'Not specified'
+                      }}</span
+                    >
+                  </div>
+                </div>
+              </details>
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty-state">
+              No findings were generated by the current checks. This does not
+              guarantee that the target is secure.
+            </p>
+            {% endif %}
+          </section>
+
+          <p class="disclaimer">
+            <strong>Assessment limitations:</strong>
+            This scanner performs limited HTTP, header, cookie, crawling, form,
+            and reflected-marker checks. It does not prove exploitability or
+            guarantee detection of every vulnerability. Findings and severity
+            labels require context and, where appropriate, manual verification.
+          </p>
+
+          {% endif %}
+        </section>
+        {% endif %}
+      </main>
+
+      <footer class="dashboard-footer">
+        <span>Web Application Security Scanner</span>
+        <span>Authorized testing only · Results require verification</span>
+      </footer>
+    </div>
+  </body>
+</html>
